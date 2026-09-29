@@ -6,16 +6,7 @@
 // SETUP FUNCTION - Runs once at the start
 // ============================================
 function setup() {
-    let canvasWidth = min(windowWidth, windowHeight * 0.5625); // 9:16 ratio
-    let canvasHeight = canvasWidth * 1.777; // 16:9 ratio (inverted)
-    
-    // Ensure canvas fits in window
-    if (canvasHeight > windowHeight) {
-        canvasHeight = windowHeight;
-        canvasWidth = canvasHeight * 0.5625;
-    }
-    
-    createCanvas(canvasWidth, canvasHeight);
+    createCanvas(windowWidth, windowHeight);
 
     lockGestures();
 }
@@ -37,18 +28,6 @@ function draw() {
 // WINDOW RESIZE HANDLER
 // ============================================
 function windowResized() {
-    // Recalculate portrait canvas dimensions on resize
-    let canvasWidth = min(windowWidth, windowHeight * 0.5625); // 9:16 ratio
-    let canvasHeight = canvasWidth * 1.777; // 16:9 ratio (inverted)
-    
-    // Ensure canvas fits in window
-    if (canvasHeight > windowHeight) {
-        canvasHeight = windowHeight;
-        canvasWidth = canvasHeight * 0.5625;
-    }
-    
-    // Resize canvas with new dimensions
-    resizeCanvas(canvasWidth, canvasHeight);
-    
+    resizeCanvas(windowWidth, windowHeight);
 }
 
