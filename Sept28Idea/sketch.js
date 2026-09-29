@@ -1,19 +1,26 @@
 let tilt = 0;
+let permissionButton;
 
 function setup() {
-createCanvas(windowWidth, windowHeight);
+    createCanvas(windowWidth, windowHeight);
 
-// Prevent scrolling, zooming, and other touch gestures.
-document.body.style.overflow = 'hidden';
-document.body.style.touchAction = 'none';
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
 
-// Start reading the phone's orientation automatically.
-window.addEventListener(
-    'deviceorientation',
-    handleOrientation,
-    true
-);
+    let requiresPermission = typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function';
 
+    if (requiresPermission) {
+        permissionButton = createButton('Enable Gyroscope');
+        permissionButton.position(width / 2 - 80, height / 2);
+        permissionButton.style('position', 'fixed');
+        permissionButton.style('z-index', '10');
+        permissionButton.style('font-size', '18px');
+        permissionButton.style('padding', '12px 16px');
+        permissionButton.mousePressed(requestOrientationPermission);
+    } else {
+        startOrientation();
+    }
 }
 
 function draw() {
@@ -30,6 +37,21 @@ rect(0, 0, width, height);
 
 }
 
+function startOrientation() {
+window.addEventListener('deviceorientation', handleOrientation, true);
+}
+
+function requestOrientationPermission() {
+DeviceOrientationEvent.requestPermission()
+    .then((response) => {
+        if (response === 'granted') {
+            startOrientation();
+            permissionButton.remove();
+        }
+    })
+    .catch(console.error);
+}
+
 function handleOrientation(event) {
 if (event.beta === null) {
 return;
@@ -42,4 +64,8 @@ tilt = constrain(abs(event.beta), 0, 180);
 
 function windowResized() {
 resizeCanvas(windowWidth, windowHeight);
+
+if (permissionButton) {
+    permissionButton.position(width / 2 - 80, height / 2);
+}
 }
