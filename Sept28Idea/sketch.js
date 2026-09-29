@@ -1,33 +1,53 @@
-// ============================================
-// Gyroscope-controlled blank screen
-// ============================================
+let permissionGranted = false;
+let permissionButton;
 
-// ============================================
-// SETUP FUNCTION - Runs once at the start
-// ============================================
 function setup() {
     createCanvas(windowWidth, windowHeight);
 
     lockGestures();
+
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+        permissionButton = createButton('Enable Gyroscope');
+        permissionButton.position(width / 2 - 70, height / 2);
+        permissionButton.mousePressed(requestGyroscopePermission);
+    } else {
+        permissionGranted = true;
+    }
 }
 
-// ============================================
-// DRAW FUNCTION - Runs continuously (60fps by default)
-// ============================================
 function draw() {
     background(255);
 
-    // At 90 degrees the screen is black; face down makes it fully clear.
-    let blackness = map(abs(rotationX), 90, 180, 255, 0, true);
+    if (!permissionGranted) {
+        return;
+    }
+
+    let totalTilt = constrain(abs(rotationX) + abs(rotationY), 0, 180);
+    let distanceFromNinety = abs(totalTilt - 90);
+    let blackness = map(distanceFromNinety, 0, 90, 255, 0, true);
+
     noStroke();
     fill(0, blackness);
     rect(0, 0, width, height);
 }
 
-// ============================================
-// WINDOW RESIZE HANDLER
-// ============================================
+function requestGyroscopePermission() {
+    DeviceOrientationEvent.requestPermission()
+        .then((response) => {
+            if (response === 'granted') {
+                permissionGranted = true;
+                permissionButton.remove();
+            }
+        })
+        .catch(console.error);
+}
+
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
+
+    if (permissionButton) {
+        permissionButton.position(width / 2 - 70, height / 2);
+    }
 }
 
