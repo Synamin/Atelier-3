@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+	<title>Draggable Calculator</title>
+	<style>
+		html, body {
+			margin: 0;
+			min-height: 100%;
+			overflow: hidden;
+			background: #e7e7e7;
+		}
+
+		canvas {
+			display: block;
+			touch-action: none;
+			user-select: none;
+			-webkit-user-select: none;
+		}
+	</style>
+</head>
+<body>
+	<script src="../p5.min.js"></script>
+	<script>
+		const buttons = [
+			['C', '(', ')', '/'],
+			['7', '8', '9', '*'],
+			['4', '5', '6', '-'],
+			['1', '2', '3', '+'],
+			['0', '.', '=', 'DEL']
+		];
+
+		let calculator;
+		let expression = '';
+		let displayValue = '0';
+		let dragging = false;
+		let dragOffsetX = 0;
+		let dragOffsetY = 0;
+
+		function setup() {
+			createCanvas(windowWidth, windowHeight);
+			textFont('Arial, sans-serif');
+			calculator = {
+				width: min(360, windowWidth - 32),
+				height: 490,
+				x: (windowWidth - min(360, windowWidth - 32)) / 2,
+				y: max(18, (windowHeight - 490) / 2)
+			};
+			calculator.height = min(490, windowHeight - 36);
+		}
+
+		function draw() {
+			background('#e7e7e7');
+
+			const bodyRadius = 18;
+			noStroke();
+			fill('#777777');
+			rect(calculator.x, calculator.y, calculator.width, calculator.height, bodyRadius);
+
+			fill('#101010');
+			rect(calculator.x + 18, calculator.y + 22, calculator.width - 36, 70, 8);
+			fill('#f2f2f2');
+			textAlign(RIGHT, CENTER);
+			textSize(min(32, calculator.width / 9));
+			text(displayValue, calculator.x + calculator.width - 32, calculator.y + 57);
+
+			const gridTop = calculator.y + 112;
+			const gap = 10;
+			const buttonWidth = (calculator.width - 36 - gap * 3) / 4;
+			const buttonHeight = (calculator.height - 132 - gap * (buttons.length - 1)) / buttons.length;
+
+			buttons.forEach((row, rowIndex) => {
+				row.forEach((label, columnIndex) => {
+					const x = calculator.x + 18 + columnIndex * (buttonWidth + gap);
+					const y = gridTop + rowIndex * (buttonHeight + gap);
+					fill(label === '=' ? '#d97722' : label === 'C' ? '#b95d21' : '#f28c28');
+					rect(x, y, buttonWidth, buttonHeight, 8);
+					fill('#171717');
+					textAlign(CENTER, CENTER);
+					textSize(min(27, buttonWidth * 0.34));
+					text(label === '*' ? 'x' : label, x + buttonWidth / 2, y + buttonHeight / 2);
+				});
+			});
+		}
+
+		function pointerPressed(pointerX, pointerY) {
+			const gridTop = calculator.y + 112;
+			const gap = 10;
+			const buttonWidth = (calculator.width - 36 - gap * 3) / 4;
+			const buttonHeight = (calculator.height - 132 - gap * (buttons.length - 1)) / buttons.length;
+
+			if (pointerX >= calculator.x + 18 && pointerX <= calculator.x + calculator.width - 18 &&
+				pointerY >= gridTop && pointerY <= calculator.y + calculator.height - 18) {
+				const column = floor((pointerX - calculator.x - 18) / (buttonWidth + gap));
+				const row = floor((pointerY - gridTop) / (buttonHeight + gap));
+				const buttonX = calculator.x + 18 + column * (buttonWidth + gap);
+				const buttonY = gridTop + row * (buttonHeight + gap);
+
+				if (column < 4 && row < buttons.length && pointerX <= buttonX + buttonWidth && pointerY <= buttonY + buttonHeight) {
+					handleButton(buttons[row][column]);
+					return;
+				}
+			}
+
+			if (pointerX >= calculator.x && pointerX <= calculator.x + calculator.width &&
+				pointerY >= calculator.y && pointerY <= gridTop - 8) {
+				dragging = true;
+				dragOffsetX = pointerX - calculator.x;
+				dragOffsetY = pointerY - calculator.y;
+			}
+		}
+
+		function handleButton(label) {
+			if (label === 'C') {
+				expression = '';
+				displayValue = '0';
+				return;
+			}
+
+			if (label === 'DEL') {
+				expression = expression.slice(0, -1);
+				displayValue = expression || '0';
+				return;
+			}
+
+			if (label === '=') {
+				try {
+					if (!expression || !/^[0-9+*/().\- ]+$/.test(expression)) throw new Error('Invalid input');
+					const result = Function(`"use strict"; return (${expression})`)();
+					displayValue = Number.isFinite(result) ? String(result) : 'Error';
+					expression = displayValue === 'Error' ? '' : displayValue;
+				} catch (error) {
+					displayValue = 'Error';
+					expression = '';
+				}
+				return;
+			}
+
+			if (displayValue === 'Error') {
+				expression = '';
+				displayValue = '0';
+			}
+
+			expression += label;
+			displayValue = expression;
+		}
+
+		function mousePressed() {
+			pointerPressed(mouseX, mouseY);
+			return false;
+		}
+
+		function mouseDragged() {
+			if (dragging) {
+				calculator.x = constrain(mouseX - dragOffsetX, 8, width - calculator.width - 8);
+				calculator.y = constrain(mouseY - dragOffsetY, 8, height - calculator.height - 8);
+			}
+			return false;
+		}
+
+		function mouseReleased() {
+			dragging = false;
+			return false;
+		}
+
+		function touchStarted() {
+			pointerPressed(touchX, touchY);
+			return false;
+		}
+
+		function touchMoved() {
+			if (dragging) {
+				calculator.x = constrain(touchX - dragOffsetX, 8, width - calculator.width - 8);
+				calculator.y = constrain(touchY - dragOffsetY, 8, height - calculator.height - 8);
+			}
+			return false;
+		}
+
+		function touchEnded() {
+			dragging = false;
+			return false;
+		}
+
+		function windowResized() {
+			resizeCanvas(windowWidth, windowHeight);
+			calculator.width = min(360, windowWidth - 32);
+			calculator.x = constrain(calculator.x, 8, width - calculator.width - 8);
+			calculator.y = constrain(calculator.y, 8, height - calculator.height - 8);
+		}
+	</script>
+</body>
+</html>
