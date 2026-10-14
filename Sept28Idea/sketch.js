@@ -20,8 +20,7 @@ function draw() {
 
     if (window.sensorsEnabled && gyroBeta !== null) {
         tilt = constrain(abs(gyroBeta), 0, 180);
-        let distanceFromNinety = abs(tilt - 90);
-        darkness = map(distanceFromNinety, 90, 0, 0, 255, true);
+        darkness = tilt <= 90 ? 255 : map(tilt, 90, 180, 255, 0, true);
         status = 'GYRO OK';
     }
 
