@@ -5,12 +5,18 @@ const STATIONARY_TIME = 10000;
 let stationaryTilt = null;
 let stationarySince = null;
 let blackoutActive = false;
+let feedImage;
+let canvasLayer;
 
 function setup() {
-    createCanvas(windowWidth, windowHeight);
+    canvasLayer = createCanvas(windowWidth, windowHeight);
 
-    document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
+    feedImage = loadImage('youtubeScroll.jpg', setFeedPageHeight);
+    document.body.style.touchAction = 'auto';
+    canvasLayer.style('position', 'fixed');
+    canvasLayer.style('top', '0');
+    canvasLayer.style('left', '0');
+    canvasLayer.style('z-index', '1');
 
     lockGestures();
     window.addEventListener('deviceorientation', handleOrientation, true);
@@ -18,8 +24,6 @@ function setup() {
 }
 
 function draw() {
-    background(255);
-
     let darkness = 0;
     let status = 'GYRO WAITING';
     const now = millis();
@@ -42,6 +46,12 @@ function draw() {
         blackoutActive = false;
     }
 
+    const feedVisible = !blackoutActive &&
+        window.sensorsEnabled &&
+        gyroBeta !== null &&
+        tilt > 150;
+    updatePageScroll(feedVisible);
+
     noStroke();
     if (blackoutActive) {
         background(0);
@@ -55,23 +65,43 @@ function draw() {
         );
         drawGlitch(glitchIntensity);
     } else {
+        if (feedVisible) {
+            clear();
+        } else {
+            background(255);
+        }
+
         // Restore the original tilt-based darkness outside the stationary blackout.
         fill(0, darkness);
         rect(0, 0, width, height);
 
         // Keep the sensor and stationary-angle state visible while testing on the phone.
-        fill(darkness > 127 ? 255 : 0);
-        textSize(16);
-        textAlign(LEFT, TOP);
-        const stationarySeconds = stationarySince === null
-            ? 0
-            : floor((now - stationarySince) / 1000);
-        text(
-            `${status} | tilt: ${tilt.toFixed(1)}° | darkness: ${Math.round(darkness / 255 * 100)}% | stationary: ${stationarySeconds}s`,
-            12,
-            12
-        );
+        if (!feedVisible) {
+            fill(darkness > 127 ? 255 : 0);
+            textSize(16);
+            textAlign(LEFT, TOP);
+            const stationarySeconds = stationarySince === null
+                ? 0
+                : floor((now - stationarySince) / 1000);
+            text(
+                `${status} | tilt: ${tilt.toFixed(1)}° | darkness: ${Math.round(darkness / 255 * 100)}% | stationary: ${stationarySeconds}s`,
+                12,
+                12
+            );
+        }
     }
+}
+
+function setFeedPageHeight(image) {
+    const pageHeight = max(windowHeight, windowWidth * image.height / image.width);
+    document.body.style.minHeight = `${pageHeight}px`;
+}
+
+function updatePageScroll(feedVisible) {
+    document.body.style.overflowY = feedVisible ? 'auto' : 'hidden';
+    document.body.style.overflowX = 'hidden';
+    document.body.style.touchAction = feedVisible ? 'auto' : 'none';
+    canvasLayer.style('pointer-events', feedVisible ? 'none' : 'auto');
 }
 
 function drawGlitch(intensity) {
@@ -108,5 +138,8 @@ function handleOrientation(event) {
 }
 
 function windowResized() {
-resizeCanvas(windowWidth, windowHeight);
+    resizeCanvas(windowWidth, windowHeight);
+    if (feedImage) {
+        setFeedPageHeight(feedImage);
+    }
 }
