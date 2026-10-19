@@ -46,11 +46,11 @@ function draw() {
         blackoutActive = false;
     }
 
-    const feedVisible = !blackoutActive &&
+    const scrollEnabled =
         window.sensorsEnabled &&
         gyroBeta !== null &&
         tilt > 90;
-    updatePageScroll(feedVisible);
+    updatePageScroll(scrollEnabled);
 
     noStroke();
     if (blackoutActive) {
@@ -65,30 +65,24 @@ function draw() {
         );
         drawGlitch(glitchIntensity);
     } else {
-        if (feedVisible) {
-            clear();
-        } else {
-            background(255);
-        }
+        clear();
 
         // Restore the original tilt-based darkness outside the stationary blackout.
         fill(0, darkness);
         rect(0, 0, width, height);
 
         // Keep the sensor and stationary-angle state visible while testing on the phone.
-        if (!feedVisible) {
-            fill(darkness > 127 ? 255 : 0);
-            textSize(16);
-            textAlign(LEFT, TOP);
-            const stationarySeconds = stationarySince === null
-                ? 0
-                : floor((now - stationarySince) / 1000);
-            text(
-                `${status} | tilt: ${tilt.toFixed(1)}° | darkness: ${Math.round(darkness / 255 * 100)}% | stationary: ${stationarySeconds}s`,
-                12,
-                12
-            );
-        }
+        fill(darkness > 127 ? 255 : 0);
+        textSize(16);
+        textAlign(LEFT, TOP);
+        const stationarySeconds = stationarySince === null
+            ? 0
+            : floor((now - stationarySince) / 1000);
+        text(
+            `${status} | tilt: ${tilt.toFixed(1)}° | darkness: ${Math.round(darkness / 255 * 100)}% | stationary: ${stationarySeconds}s`,
+            12,
+            12
+        );
     }
 }
 
@@ -97,17 +91,14 @@ function setFeedPageHeight(image) {
     document.body.style.minHeight = `${pageHeight}px`;
 }
 
-function updatePageScroll(feedVisible) {
-    document.body.style.overflowY = feedVisible ? 'auto' : 'hidden';
+function updatePageScroll(scrollEnabled) {
+    document.body.style.overflowY = scrollEnabled ? 'auto' : 'hidden';
     document.body.style.overflowX = 'hidden';
-    document.body.style.touchAction = feedVisible ? 'auto' : 'none';
-    document.body.style.background = feedVisible
-        ? '#000000 url("youtubeScroll.jpg") top center / 100% auto no-repeat'
-        : '#ffffff';
-    document.body.style.minHeight = feedVisible && feedImage
+    document.body.style.touchAction = scrollEnabled ? 'auto' : 'none';
+    document.body.style.minHeight = feedImage
         ? `${max(windowHeight, windowWidth * feedImage.height / feedImage.width)}px`
         : `${windowHeight}px`;
-    canvasLayer.style('pointer-events', feedVisible ? 'none' : 'auto');
+    canvasLayer.style('pointer-events', scrollEnabled && !blackoutActive ? 'none' : 'auto');
 }
 
 function drawGlitch(intensity) {
