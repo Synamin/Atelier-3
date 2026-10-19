@@ -2,17 +2,20 @@ let tilt = 0;
 let gyroBeta = null;
 const TILT_BOUNDARY = 10;
 const STATIONARY_TIME = 10000;
+const AUTO_SCROLL_SPEED = 0.35;
 let stationaryTilt = null;
 let stationarySince = null;
 let blackoutActive = false;
 let feedImage;
 let canvasLayer;
+let previousScrollEnabled = false;
+let autoScrollPosition = 0;
 
 function setup() {
     canvasLayer = createCanvas(windowWidth, windowHeight);
 
     feedImage = loadImage('youtubeScroll.jpg', setFeedPageHeight);
-    document.body.style.touchAction = 'auto';
+    document.body.style.touchAction = 'none';
     canvasLayer.style('position', 'fixed');
     canvasLayer.style('top', '0');
     canvasLayer.style('left', '0');
@@ -51,6 +54,7 @@ function draw() {
         gyroBeta !== null &&
         tilt > 90;
     updatePageScroll(scrollEnabled);
+    updateAutomaticScroll(scrollEnabled);
 
     noStroke();
     if (blackoutActive) {
@@ -94,11 +98,29 @@ function setFeedPageHeight(image) {
 function updatePageScroll(scrollEnabled) {
     document.body.style.overflowY = scrollEnabled ? 'auto' : 'hidden';
     document.body.style.overflowX = 'hidden';
-    document.body.style.touchAction = scrollEnabled ? 'auto' : 'none';
+    document.body.style.touchAction = 'none';
     document.body.style.minHeight = feedImage
         ? `${max(windowHeight, windowWidth * feedImage.height / feedImage.width)}px`
         : `${windowHeight}px`;
     canvasLayer.style('pointer-events', scrollEnabled && !blackoutActive ? 'none' : 'auto');
+}
+
+function updateAutomaticScroll(scrollEnabled) {
+    if (!scrollEnabled || blackoutActive) {
+        previousScrollEnabled = false;
+        autoScrollPosition = 0;
+        return;
+    }
+
+    if (!previousScrollEnabled) {
+        autoScrollPosition = 0;
+        window.scrollTo(0, 0);
+    }
+
+    const maximumScroll = max(0, document.body.scrollHeight - windowHeight);
+    autoScrollPosition = min(autoScrollPosition + AUTO_SCROLL_SPEED, maximumScroll);
+    window.scrollTo(0, autoScrollPosition);
+    previousScrollEnabled = true;
 }
 
 function drawGlitch(intensity) {
