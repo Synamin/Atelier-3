@@ -11,14 +11,27 @@ let canvasLayer;
 let previousScrollEnabled = false;
 let autoScrollPosition = 0;
 let darknessTone;
+let alarmSounds = [];
+let alarmEffectOrder = [];
+let nextAlarmEffectIndex = 0;
 let darknessToneStarted = false;
 let darknessToneStarting = false;
+let alarmSoundTimer;
+let oscillatorEffectPlaying = false;
+let currentAlarmVolume = 0.35;
+
+const ALARM_SOUND_PATHS = [
+    'jobro__alarm.wav',
+    'outlawsoftware__alarm.wav',
+    'randomrecord19__alarm.wav'
+];
 
 function setup() {
     canvasLayer = createCanvas(windowWidth, windowHeight);
     darknessTone = new p5.Oscillator('sine');
     darknessTone.freq(2200);
     darknessTone.amp(0);
+    alarmSounds = ALARM_SOUND_PATHS.map((path) => loadSound(path));
 
     feedImage = loadImage('youtubeScroll.jpg', setFeedPageHeight);
     document.body.style.touchAction = 'none';
@@ -111,6 +124,8 @@ function startDarknessTone() {
             darknessTone.start();
             darknessToneStarted = true;
             darknessToneStarting = false;
+            shuffleAlarmEffectOrder();
+            playNextAlarmSound();
         })
         .catch((error) => {
             darknessToneStarting = false;
@@ -126,7 +141,50 @@ function updateDarknessTone(darkness) {
     const toneVolume = blackoutActive
         ? 0.35
         : map(darkness, 255, 0, 0.35, 1, true);
-    darknessTone.amp(toneVolume, 0.08);
+    currentAlarmVolume = toneVolume;
+    alarmSounds.forEach((sound) => sound.amp(toneVolume, 0.08));
+    if (oscillatorEffectPlaying) {
+        darknessTone.amp(toneVolume, 0.08);
+    }
+}
+
+function shuffleAlarmEffectOrder() {
+    alarmEffectOrder = shuffle([
+        'oscillator',
+        ...ALARM_SOUND_PATHS.map((_, index) => index)
+    ]);
+    nextAlarmEffectIndex = 0;
+}
+
+function playNextAlarmSound() {
+    if (!darknessToneStarted) {
+        return;
+    }
+
+    if (nextAlarmEffectIndex >= alarmEffectOrder.length) {
+        shuffleAlarmEffectOrder();
+    }
+
+    const effect = alarmEffectOrder[nextAlarmEffectIndex];
+    nextAlarmEffectIndex++;
+
+    if (effect === 'oscillator') {
+        oscillatorEffectPlaying = true;
+        darknessTone.amp(currentAlarmVolume, 0.08);
+        setTimeout(() => {
+            oscillatorEffectPlaying = false;
+            darknessTone.amp(0, 0.15);
+        }, random(500, 1400));
+    } else {
+        const sound = alarmSounds[effect];
+        if (sound && sound.isLoaded()) {
+            sound.playMode('sustain');
+            sound.play();
+        }
+    }
+
+    const nextDelay = random(350, 1800);
+    alarmSoundTimer = setTimeout(playNextAlarmSound, nextDelay);
 }
 
 function setFeedPageHeight(image) {
