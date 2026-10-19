@@ -20,11 +20,13 @@ function setup() {
 function draw() {
     background(255);
 
+    let darkness = 0;
     let status = 'GYRO WAITING';
     const now = millis();
 
     if (window.sensorsEnabled && gyroBeta !== null) {
         tilt = constrain(abs(gyroBeta), 0, 180);
+        darkness = tilt <= 90 ? 255 : map(tilt, 90, 180, 255, 0, true);
         status = 'GYRO OK';
 
         if (stationaryTilt === null || abs(tilt - stationaryTilt) > TILT_BOUNDARY) {
@@ -53,15 +55,19 @@ function draw() {
         );
         drawGlitch(glitchIntensity);
     } else {
+        // Restore the original tilt-based darkness outside the stationary blackout.
+        fill(0, darkness);
+        rect(0, 0, width, height);
+
         // Keep the sensor and stationary-angle state visible while testing on the phone.
-        fill(0);
+        fill(darkness > 127 ? 255 : 0);
         textSize(16);
         textAlign(LEFT, TOP);
         const stationarySeconds = stationarySince === null
             ? 0
             : floor((now - stationarySince) / 1000);
         text(
-            `${status} | tilt: ${tilt.toFixed(1)}° | stationary: ${stationarySeconds}s`,
+            `${status} | tilt: ${tilt.toFixed(1)}° | darkness: ${Math.round(darkness / 255 * 100)}% | stationary: ${stationarySeconds}s`,
             12,
             12
         );
