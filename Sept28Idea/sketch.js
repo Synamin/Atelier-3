@@ -49,7 +49,7 @@ function draw() {
     const feedVisible = !blackoutActive &&
         window.sensorsEnabled &&
         gyroBeta !== null &&
-        tilt > 150;
+        tilt > 90;
     updatePageScroll(feedVisible);
 
     noStroke();
@@ -101,6 +101,12 @@ function updatePageScroll(feedVisible) {
     document.body.style.overflowY = feedVisible ? 'auto' : 'hidden';
     document.body.style.overflowX = 'hidden';
     document.body.style.touchAction = feedVisible ? 'auto' : 'none';
+    document.body.style.background = feedVisible
+        ? '#000000 url("youtubeScroll.jpg") top center / 100% auto no-repeat'
+        : '#ffffff';
+    document.body.style.minHeight = feedVisible && feedImage
+        ? `${max(windowHeight, windowWidth * feedImage.height / feedImage.width)}px`
+        : `${windowHeight}px`;
     canvasLayer.style('pointer-events', feedVisible ? 'none' : 'auto');
 }
 
