@@ -10,9 +10,15 @@ let feedImage;
 let canvasLayer;
 let previousScrollEnabled = false;
 let autoScrollPosition = 0;
+let darknessTone;
+let darknessToneStarted = false;
+let darknessToneStarting = false;
 
 function setup() {
     canvasLayer = createCanvas(windowWidth, windowHeight);
+    darknessTone = new p5.Oscillator('sine');
+    darknessTone.freq(2200);
+    darknessTone.amp(0);
 
     feedImage = loadImage('youtubeScroll.jpg', setFeedPageHeight);
     document.body.style.touchAction = 'none';
@@ -24,6 +30,9 @@ function setup() {
     lockGestures();
     window.addEventListener('deviceorientation', handleOrientation, true);
     enableGyroTap('Tap to enable motion sensors');
+    window.addEventListener('pointerdown', startDarknessTone, true);
+    window.addEventListener('touchstart', startDarknessTone, true);
+    window.addEventListener('click', startDarknessTone, true);
 }
 
 function draw() {
@@ -55,6 +64,7 @@ function draw() {
         tilt > 90;
     updatePageScroll(scrollEnabled);
     updateAutomaticScroll(scrollEnabled);
+    updateDarknessTone(darkness);
 
     noStroke();
     if (blackoutActive) {
@@ -88,6 +98,35 @@ function draw() {
             12
         );
     }
+}
+
+function startDarknessTone() {
+    if (darknessToneStarted || darknessToneStarting) {
+        return;
+    }
+
+    darknessToneStarting = true;
+    userStartAudio()
+        .then(() => {
+            darknessTone.start();
+            darknessToneStarted = true;
+            darknessToneStarting = false;
+        })
+        .catch((error) => {
+            darknessToneStarting = false;
+            console.error('Unable to start the darkness sound:', error);
+        });
+}
+
+function updateDarknessTone(darkness) {
+    if (!darknessToneStarted) {
+        return;
+    }
+
+    const toneVolume = blackoutActive
+        ? 0.35
+        : map(darkness, 255, 0, 0.35, 1, true);
+    darknessTone.amp(toneVolume, 0.08);
 }
 
 function setFeedPageHeight(image) {
